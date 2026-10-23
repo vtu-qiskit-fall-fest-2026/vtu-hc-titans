@@ -1,16 +1,20 @@
 # QubitLab
 
-**Team:** VTU HC Titans
+**Demo link:** see Deployed_Project_Link.md
+
+## Team
+
+**Team name:** VTU HC Titans  
 **Team ID:** VTU-QFF-HC-0065
-**Demo link:** TODO
 
-## Team members
+## Team Members
 
-| Name | Role |
-| --- | --- |
-| TODO | TODO |
-| TODO | TODO |
-| TODO | TODO |
+| Name | GitHub Username | Role |
+| --- | --- | --- |
+| Jeevan MK | Jeevanontop | Team Lead |
+| TODO | TODO | TODO |
+| TODO | TODO | TODO |
+<!-- TODO: add remaining team members -->
 
 ## Problem statement
 
@@ -122,8 +126,8 @@ details. The frontend displays the message and supplied details.
 - Maximum **8 qubits**, **8192 shots**, and **100 gates**.
 - Mid-circuit measurement is not supported; measurements are applied at the
   end of a circuit.
-- Simulation runs locally with Qiskit Aer through the Flask API. It is not a
-  cloud quantum execution service.
+- Simulation runs locally with Qiskit Aer only, through the Flask API. This is
+  not cloud quantum execution.
 - No real IBM Quantum hardware is used. IBM Quantum is mentioned only in the
   event context, not as a hardware integration claim.
 - Finite-shot observed frequencies can differ slightly from ideal theoretical
@@ -173,6 +177,18 @@ npm run dev
 ```
 
 Open the Vite URL, normally `http://localhost:5173`.
+
+### Docker
+
+From the repository root:
+
+```bash
+docker build -t qubitlab .
+docker run --rm -p 5000:5000 qubitlab
+```
+
+The container serves the built frontend and Flask API from port 5000. Set
+`PORT` when running the container to use a different internal port.
 
 For local environment configuration, copy `.env.example` to `.env` in the
 repository root. To change the Vite API proxy destination, copy
