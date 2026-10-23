@@ -1,56 +1,54 @@
 # Testing and verification
 
-## Frontend
+## Commands
 
-From the repository root:
+Run frontend dependency installation and production build:
 
 ```bash
 cd frontend
 npm install
 npm run build
-npm audit
 ```
 
-The build type-checks the TypeScript project and produces the Vite production
-bundle. Run the dev server with the Flask API available to check live integration:
-
-```bash
-npm run dev
-```
-
-The Vite proxy forwards `/api` to `http://127.0.0.1:5000` unless
-`VITE_API_PROXY_TARGET` overrides it.
-
-## Backend
-
-Run backend tests from the backend directory:
+Run backend tests and start the API in separate terminals:
 
 ```bash
 cd backend
 python -m pytest -v
 ```
 
-Start the Flask API for integration checks in a separate terminal:
-
 ```bash
 cd backend
 python app.py
 ```
 
-The API health/config and example endpoints can be checked at
-`http://127.0.0.1:5000/api/info` and `/api/examples`. From the frontend, submit
-circuits through Builder and inspect returned counts, probabilities, diagram,
-and metadata.
+With Flask running on `127.0.0.1:5000`, verify the API itself rather than
+calling Aer directly:
 
-## Useful circuit checks
+```bash
+curl http://127.0.0.1:5000/api/info
+curl http://127.0.0.1:5000/api/examples
+```
 
-With both services running, compare returned results against expected ideal
-behavior (finite shots cause sampling variation):
+Submit the Bell request in [README.md](../README.md) to
+`POST /api/simulate`. Check that only `00` and `11` occur in the returned
+counts. For the frontend integration path, run `npm run dev`, load the Bell
+example in Builder, run it, and inspect the returned counts, chart, diagram,
+metadata, and error states.
 
-- H on q0 and measure q0: outcomes 0 and 1 should each be near 50%.
-- Bell state H(q0), CNOT(q0, q1), measure both: only 00 and 11 should occur,
-  near 50% each.
-- X on q0 in a two-qubit circuit with q0→c0 and q1→c1: the measured string
-  should be 01 with probability 100% under the documented bit ordering.
+## Verification record for this checkout
 
-These are validation expectations, not hard-coded frontend results.
+- Frontend: `npm run build` passed on 2026-10-23 using Vite 8.3.5 and TypeScript.
+- Dependencies: `npm audit` reported zero vulnerabilities on 2026-10-23.
+- Direct local Aer checks (not API checks), 4096 shots with seed 1234:
+  - H on q0: `0: 2045`, `1: 2051`.
+  - Bell circuit: `00: 2074`, `11: 2022`; no other outcomes.
+  - X on q0 with two measured qubits: `01: 4096`.
+- Backend pytest: not run successfully; the checkout had no `backend/` directory
+  or `backend/app.py`.
+- Live Flask API checks: not completed; `127.0.0.1:5000` refused connections
+  because the backend was unavailable. Therefore the Bell outcome through the
+  API and frontend-to-API integration remain unverified.
+
+Direct Aer results establish simulator behavior only. They are not evidence
+that the Flask API is running or returning the same response.

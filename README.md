@@ -1,68 +1,87 @@
 # QubitLab
 
 **Team:** VTU HC Titans
-
 **Team ID:** VTU-QFF-HC-0065
-**Problem statement:** Quantum Cloud Platform for Accessible Quantum Circuit Simulation and Execution
+**Demo link:** TODO
 
-QubitLab is a beginner-friendly playground for building quantum circuits and
-understanding their simulated measurement results. Users choose qubits, place
-gates, map measurements to classical bits, select a shot count, and compare
-observed counts with ideal probabilities.
+## Team members
 
-## What it does
+| Name | Role |
+| --- | --- |
+| TODO | TODO |
+| TODO | TODO |
+| TODO | TODO |
 
-- Provides Home, Builder, and Learn pages.
-- Includes short quantum concept notes and four guided circuit experiments on
-  the Learn page; experiment circuits are loaded from matching API example IDs.
-- Builds circuits with H, X, Y, Z, S, T, and CNOT gates using a click-to-place
-  grid, with an eraser and two-click CNOT control/target placement.
-- Loads circuits and explanations from the API examples endpoint.
-- Sends simulation requests to the Flask API and displays counts,
-  probabilities, a circuit diagram, and simulator metadata.
-- Shows API/network failures rather than inventing results.
-- Uses the simulator limits reported by the API to configure qubit and shot
-  controls.
+## Problem statement
+
+**Quantum Cloud Platform for Accessible Quantum Circuit Simulation and Execution**
+
+Beginners need an approachable way to construct quantum circuits, run
+simulations, and interpret measurement outcomes without requiring immediate
+access to quantum hardware.
+
+## Solution
+
+QubitLab is a beginner-friendly circuit playground. The React frontend lets
+users choose qubits and shots, place gates, select measurements, load guided
+examples, and compare observed measurement counts with theoretical
+probabilities. A Flask API validates requests and runs circuits locally using
+Qiskit Aer. The Learn page introduces quantum concepts and provides four
+guided experiments.
+
+The app reports API failures instead of fabricating a result. It does not
+submit work to physical quantum hardware.
+
+## Tech stack
+
+| Layer | Technology |
+| --- | --- |
+| Frontend | React, TypeScript, Vite |
+| API | Python, Flask |
+| Circuit SDK | Qiskit |
+| Local simulator | Qiskit Aer |
+| Testing | pytest, TypeScript compiler, Vite production build |
 
 ## Architecture
 
 ```text
-React + Vite frontend  ->  Flask API  ->  Qiskit Aer local simulator
+React + Vite frontend  →  Flask API  →  Qiskit Aer local simulator
        /frontend             /backend          local execution
 ```
 
-The Vite development server proxies `/api` requests to
-`http://127.0.0.1:5000` by default. To override the proxy, copy
-`frontend/.env.example` to `frontend/.env` and edit `VITE_API_PROXY_TARGET`.
+The browser calls the API through `/api`. Vite proxies those requests to
+`http://127.0.0.1:5000` during development. The API validates circuit settings
+and gate/measurement inputs before running the local simulator. See
+[docs/architecture.md](docs/architecture.md).
 
 ## Supported gates
 
-The builder presents the supported gates returned by `GET /api/info`:
+The Builder uses the gate set advertised by `GET /api/info`:
 
-| Gate | Description |
+| Gate | Beginner description |
 | --- | --- |
-| H | Hadamard: changes basis and can create superposition |
-| X | Pauli-X bit flip |
-| Y | Pauli-Y bit and phase rotation |
-| Z | Pauli-Z phase flip |
+| H | Hadamard; creates superposition from a basis state |
+| X | Pauli-X; flips 0 and 1 |
+| Y | Pauli-Y; flips and changes phase |
+| Z | Pauli-Z; changes phase |
 | S | S phase gate |
 | T | T phase gate |
-| CNOT / CX | Controlled X: flips the target when the control is 1 |
+| CNOT / CX | Controlled X; flips the target when its control is 1 |
 
-Actual gate availability and simulation limits are supplied by the running API.
+## API endpoints
 
-## API
-
-All endpoints are served by the Flask API and accessed from the frontend
-through the Vite `/api` proxy.
+The frontend depends on these configuration, example, and simulation endpoints.
+`GET /api/health` is the documented readiness probe; its availability should
+be confirmed against the backend deployment before relying on it.
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
-| `GET` | `/api/info` | Supported gates, qubit/bit/gate limits, shot limits/default, and bit order |
-| `GET` | `/api/examples` | Named example circuits with descriptions and expected behavior |
-| `POST` | `/api/simulate` | Run a circuit and return counts, measured/theoretical probabilities, metadata, and a diagram |
+| `GET` | `/api/health` | Optional service readiness probe |
+| `GET` | `/api/info` | Supported gates, limits, defaults, and bit order |
+| `GET` | `/api/examples` | Example circuits, descriptions, and expected behavior |
+| `POST` | `/api/simulate` | Validate and simulate a circuit |
 
-Example simulation request:
+Example Bell circuit request:
 
 ```json
 {
@@ -80,8 +99,7 @@ Example simulation request:
 }
 ```
 
-Example successful response shape (counts and probabilities depend on the
-circuit, shots, and optional seed):
+Example success response shape (counts are illustrative, not a live result):
 
 ```json
 {
@@ -92,18 +110,31 @@ circuit, shots, and optional seed):
   "probabilities": { "00": 0.498, "11": 0.502 },
   "theoretical_probabilities": { "00": 0.5, "11": 0.5 },
   "metadata": { "num_qubits": 2, "num_clbits": 2 },
-  "diagram": "q0: |0> --H--●--M\\nq1: |0> ------⊕--M"
+  "diagram": "q0: |0> --H--●--M\nq1: |0> ------⊕--M"
 }
 ```
 
-The counts above illustrate the response format only; they are not a live or
-promised simulation result. API errors use an `error` object with a message and may include a code and
-details. The UI shows the message and each supplied detail.
+Errors are returned in an `error` object and can include a code, message, and
+details. The frontend displays the message and supplied details.
+
+## Limits and honest limitations
+
+- Maximum **8 qubits**, **8192 shots**, and **100 gates**.
+- Mid-circuit measurement is not supported; measurements are applied at the
+  end of a circuit.
+- Simulation runs locally with Qiskit Aer through the Flask API. It is not a
+  cloud quantum execution service.
+- No real IBM Quantum hardware is used. IBM Quantum is mentioned only in the
+  event context, not as a hardware integration claim.
+- Finite-shot observed frequencies can differ slightly from ideal theoretical
+  probabilities.
+- A running backend is required. The frontend does not create fallback or
+  fake results if the API is unreachable.
 
 ## Setup and run
 
-Requirements: Python and Node.js/npm. Run the backend and frontend in separate
-terminals.
+Requirements: Python with the backend dependencies installed, and Node.js/npm.
+Run backend and frontend in separate terminals.
 
 ### Windows (PowerShell)
 
@@ -122,9 +153,7 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite, normally `http://localhost:5173`.
-For an optional proxy override, copy `.env.example` to `.env` in `frontend`
-before starting Vite.
+Open the Vite URL, normally `http://localhost:5173`.
 
 ### macOS / Linux
 
@@ -143,16 +172,16 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite, normally `http://localhost:5173`.
-For an optional proxy override, copy `.env.example` to `.env` in `frontend`
-before starting Vite.
+Open the Vite URL, normally `http://localhost:5173`.
 
-## Tests and build
+For local environment configuration, copy `.env.example` to `.env` in the
+repository root. To change the Vite API proxy destination, copy
+`frontend/.env.example` to `frontend/.env` and change
+`VITE_API_PROXY_TARGET`.
 
-See [docs/architecture.md](docs/architecture.md) for component and API
-architecture and [docs/testing.md](docs/testing.md) for verification guidance.
+## Tests
 
-Backend tests:
+Backend:
 
 ```bash
 cd backend
@@ -163,22 +192,13 @@ Frontend production build:
 
 ```bash
 cd frontend
+npm install
 npm run build
 ```
 
-## Limits and honest limitations
-
-- The API is authoritative for maximum qubits, classical bits, gates, and shot
-  ranges. The frontend reads these values from `/api/info`; it does not promise
-  a limit independently of that response.
-- Simulations run on the local Qiskit Aer simulator through the Flask API.
-- QubitLab does not currently submit jobs to IBM Quantum or other real quantum
-  hardware. The IBM Quantum name in the event/team footer is not a claim of a
-  hardware connection.
-- Measurement results are finite-shot samples. They can differ from ideal
-  theoretical probabilities, especially at low shot counts.
-- The frontend requires the Flask API to be running; it displays a connection
-  error if the API cannot be reached and does not provide fallback results.
+See [docs/testing.md](docs/testing.md) for test scope and known verification
+limitations. See [docs/screenshots/README.md](docs/screenshots/README.md) for
+the requested demo screenshots.
 
 ## License
 

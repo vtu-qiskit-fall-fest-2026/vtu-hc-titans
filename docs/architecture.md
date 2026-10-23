@@ -1,58 +1,57 @@
 # QubitLab architecture
 
-## Request flow
+## Components and data flow
 
 ```text
-Browser (React + TypeScript)
-    │  /api/* requests (same origin during Vite development)
-    ▼
-Vite development proxy
-    │  forwards to http://127.0.0.1:5000 by default
-    ▼
-Flask API (/backend)
-    │  validates circuit payload and invokes local simulation
-    ▼
-Qiskit Aer simulator
+Browser
+  React + TypeScript circuit builder
+      │ GET /api/info, GET /api/examples, POST /api/simulate
+      ▼
+  Vite development proxy (/api → http://127.0.0.1:5000)
+      ▼
+  Flask API (/backend)
+      │ validate request and construct Qiskit circuit
+      ▼
+  Qiskit Aer local simulator
+      │ counts, probabilities, diagram, metadata
+      └──────────────────────────────→ Flask → frontend results view
 ```
 
-The frontend does not calculate substitute outcomes. It renders successful
-API responses and exposes API/network errors to the user. In development, Vite
-proxies `/api` to the Flask server. Set `VITE_API_PROXY_TARGET` in
-`frontend/.env` to override that destination; see [`.env.example`](../frontend/.env.example).
+The frontend requests API limits and supported gates from `GET /api/info`, then
+uses them to constrain Builder controls. It obtains guided circuits from
+`GET /api/examples`. The Builder submits `num_qubits`, `num_clbits`, `shots`,
+optional `seed`, ordered `gates`, and `measurements` to `POST /api/simulate`.
+The API response provides observed counts/probabilities, theoretical
+probabilities, metadata, and a diagram for display.
 
-## Frontend responsibilities
+Grid column positions are local editor metadata. Before submission, the
+frontend orders gates by column and sends only API gate properties:
+`name`, `target`, and optional `control`.
 
-- `src/App.tsx` selects Home (`/`), Builder (`/builder`), and Learn (`/learn`)
-  pages and handles browser history navigation.
-- `src/components/BuilderPage.tsx` loads API limits/examples and manages circuit
-  editing and simulation state.
-- `src/components/CircuitEditor.tsx`, `CircuitGrid.tsx`, and `GatePalette.tsx`
-  implement gate selection, cell placement, CNOT control/target selection,
-  measurements, and circuit settings.
-- `src/components/ResultsDashboard.tsx` and `BarChart.tsx` render idle/loading/
-  error/success states, counts, probabilities, diagram, and metadata.
-- `src/pages/LearnPage.tsx` describes quantum concepts and maps guided experiment
-  cards to example IDs supplied by `GET /api/examples`.
-- `src/api.ts` implements the HTTP contract and preserves API error messages and
-  details.
+## Validation
 
-## API contract used
+### Frontend validation
 
-- `GET /api/info`: supported gates, limits, defaults, and bit order.
-- `GET /api/examples`: `{ examples: [{ id, title, description, expected, circuit }] }`.
-- `POST /api/simulate`: accepts qubit/classical-bit counts, shots, optional seed,
-  gates, and measurements; returns status, backend, counts, observed and
-  theoretical probabilities, metadata, and an optional ASCII diagram.
-- API errors use an `error` object. The frontend displays its message and any
-  details rather than silently replacing them.
+- Qubit and shot controls are constrained by values returned by `/api/info`.
+- Shot counts and optional seed are checked for valid integer values before
+  submission.
+- Measurement checkboxes map qubit `i` to classical bit `i`.
+- CNOT placement requires two distinct, empty qubit cells in the same column.
+- The frontend reports network failures, API error messages, and supplied error
+  details; it does not synthesize simulation results.
 
-Grid column placement is editor-only metadata. Before submission the frontend
-sorts gates by column and removes that metadata, sending only the API-supported
-gate fields (`name`, `target`, and optional `control`).
+### API/backend validation
 
-## Limitations
+The Flask API is the authority for request validation and the hard limits:
+maximum 8 qubits, 8192 shots, and 100 gates. It must reject unsupported gate
+names, invalid qubit/control/target indexes, invalid measurement mappings, and
+requests exceeding its circuit/shot limits before simulation. Mid-circuit
+measurement is not supported. The backend source was not present in the
+checkout used to write these docs, so these validation behaviors have not been
+independently inspected here.
 
-The backend executes locally with Qiskit Aer. The application does not claim to
-run jobs on IBM Quantum or other physical hardware. In production, deployment
-must provide an API proxy/reverse proxy or configure the serving environment
-so `/api` reaches the Flask API; the Vite proxy is a development-server feature.
+## Deployment boundary
+
+Vite's proxy is for development. A production deployment needs a reverse proxy
+or equivalent server configuration forwarding `/api` to Flask. QubitLab uses
+Qiskit Aer locally; it does not connect to IBM Quantum hardware.
